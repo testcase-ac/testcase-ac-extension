@@ -84,7 +84,7 @@ const addImageLinkToLeft = (element: Element, problemId: string) => {
 };
 
 export default defineContentScript({
-  matches: ["https://www.acmicpc.net/*"],
+  matches: ["https://www.acmicpc.net/*", "https://acmicpc.net/*"],
   runAt: "document_end",
   async main() {
     // When a user visits a page, the content script starts.

@@ -158,7 +158,10 @@ export default defineBackground(() => {
 
     chrome.tabs.get(activeInfo.tabId, (tab) => {
       console.log(`Tab switched to: ${activeInfo.tabId}, url: ${tab.url}`);
-      if (!tab.url || !tab.url.startsWith("https://www.acmicpc.net/")) {
+      const isBaekjoonTab =
+        tab.url?.startsWith("https://www.acmicpc.net/") ||
+        tab.url?.startsWith("https://acmicpc.net/");
+      if (!isBaekjoonTab) {
         chrome.action.setBadgeText({ text: "" });
       }
     });
