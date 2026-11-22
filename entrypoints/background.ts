@@ -9,15 +9,19 @@ export default defineBackground(() => {
   const CACHE_TTL = 60 * 1000; // 1 minute
 
   // 현재 testcase.ac에 등록된 문제에 들어옴이 감지됐을 때 호출하는 함수
-  const markFound = (problemId: string, previouslySeen?: boolean) => {
+  const markFound = (
+    tabId: number,
+    problemId: string,
+    previouslySeen?: boolean,
+  ) => {
     console.log("background: markFound");
     console.log(`testcase.ac page exists! ${problemId}`);
     chrome.storage.local.set({
       lastCheckedProblemId: problemId,
       lastCheckedExist: true,
     });
-    chrome.action.setBadgeText({ text: "1" });
-    chrome.action.setBadgeBackgroundColor({ color: "#FF0000" });
+    chrome.action.setBadgeText({ tabId, text: "1" });
+    chrome.action.setBadgeBackgroundColor({ tabId, color: "#FF0000" });
 
     // Do not check for popup if the problem is already seen
     if (previouslySeen) {
@@ -33,10 +37,10 @@ export default defineBackground(() => {
   };
 
   // testcase.ac에 등록되지 않은 문제에 들어옴이 감지됐을 때 호출하는 함수
-  const markNotFound = (problemId: string) => {
+  const markNotFound = (tabId: number, problemId: string) => {
     console.log("background: markNotFound");
     console.log(`testcase.ac page does not exist! ${problemId}`);
-    chrome.action.setBadgeText({ text: "" });
+    chrome.action.setBadgeText({ tabId, text: "" });
     chrome.storage.local.set({
       lastCheckedProblemId: problemId,
       lastCheckedExist: false,
@@ -115,10 +119,15 @@ export default defineBackground(() => {
       console.log(`background: onMessage. message:`, message);
       if (message.type === "pageLoaded") {
         const { currentProblemId, problemIds } = message;
+        const senderId = sender.tab?.id;
+        if (!senderId) {
+          console.error("background: senderId not found");
+          return;
+        }
         if (!currentProblemId) {
           // 지금 들어온 페이지는 한 문제를 다루는 페이지가 아님.
-          // 뱃지 일단 업데이트
-          chrome.action.setBadgeText({ text: "" });
+          // 뱃지 일단 업데이트 (탭별 뱃지라 다른 탭에는 영향 없음)
+          chrome.action.setBadgeText({ tabId: senderId, text: "" });
         }
 
         // 네트워크 쿼리로 있는 문제 가져옴
@@ -132,38 +141,19 @@ export default defineBackground(() => {
         // 현재 페이지가 한 문제를 다루는 페이지일 때, 이에 맞게 뱃지 업데이트 등 진행
         if (currentProblemId) {
           if (existProblemIds.includes(currentProblemId)) {
-            markFound(currentProblemId);
+            markFound(senderId, currentProblemId);
           } else {
-            markNotFound(currentProblemId);
+            markNotFound(senderId, currentProblemId);
           }
         }
 
         // 백준 페이지에서 리스트, 제목 등에 로고 업데이트하도록 메세지 전송
-        const senderId = sender.tab?.id;
-        if (senderId) {
-          console.log("background: sending problemsExist message to", senderId);
-          chrome.tabs.sendMessage(senderId, {
-            type: "problemsExist",
-            problemIds: existProblemIds,
-          });
-        } else {
-          console.error("background: senderId not found");
-        }
+        console.log("background: sending problemsExist message to", senderId);
+        chrome.tabs.sendMessage(senderId, {
+          type: "problemsExist",
+          problemIds: existProblemIds,
+        });
       }
     },
   );
-
-  chrome.tabs.onActivated.addListener((activeInfo) => {
-    // activeInfo contains tabId and windowId
-
-    chrome.tabs.get(activeInfo.tabId, (tab) => {
-      console.log(`Tab switched to: ${activeInfo.tabId}, url: ${tab.url}`);
-      const isBaekjoonTab =
-        tab.url?.startsWith("https://www.acmicpc.net/") ||
-        tab.url?.startsWith("https://acmicpc.net/");
-      if (!isBaekjoonTab) {
-        chrome.action.setBadgeText({ text: "" });
-      }
-    });
-  });
 });
