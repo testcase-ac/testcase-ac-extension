@@ -16,21 +16,21 @@ export default defineBackground(() => {
   ) => {
     console.log("background: markFound");
     console.log(`testcase.ac page exists! ${problemId}`);
-    chrome.storage.local.set({
+    browser.storage.local.set({
       lastCheckedProblemId: problemId,
       lastCheckedExist: true,
     });
-    chrome.action.setBadgeText({ tabId, text: "1" });
-    chrome.action.setBadgeBackgroundColor({ tabId, color: "#FF0000" });
+    browser.action.setBadgeText({ tabId, text: "1" });
+    browser.action.setBadgeBackgroundColor({ tabId, color: "#FF0000" });
 
     // Do not check for popup if the problem is already seen
     if (previouslySeen) {
       return;
     }
-    chrome.storage.local.get(["showPopup"], (result) => {
+    browser.storage.local.get(["showPopup"], (result) => {
       if (result.showPopup === true) {
         console.log("before openPopup");
-        chrome.action.openPopup();
+        browser.action.openPopup();
         console.log("after openPopup");
       }
     });
@@ -40,8 +40,8 @@ export default defineBackground(() => {
   const markNotFound = (tabId: number, problemId: string) => {
     console.log("background: markNotFound");
     console.log(`testcase.ac page does not exist! ${problemId}`);
-    chrome.action.setBadgeText({ tabId, text: "" });
-    chrome.storage.local.set({
+    browser.action.setBadgeText({ tabId, text: "" });
+    browser.storage.local.set({
       lastCheckedProblemId: problemId,
       lastCheckedExist: false,
     });
@@ -114,7 +114,7 @@ export default defineBackground(() => {
     }
   };
 
-  chrome.runtime.onMessage.addListener(
+  browser.runtime.onMessage.addListener(
     async (message, sender, sendResponse) => {
       console.log(`background: onMessage. message:`, message);
       if (message.type === "pageLoaded") {
@@ -127,7 +127,7 @@ export default defineBackground(() => {
         if (!currentProblemId) {
           // 지금 들어온 페이지는 한 문제를 다루는 페이지가 아님.
           // 뱃지 일단 업데이트 (탭별 뱃지라 다른 탭에는 영향 없음)
-          chrome.action.setBadgeText({ tabId: senderId, text: "" });
+          browser.action.setBadgeText({ tabId: senderId, text: "" });
         }
 
         // 네트워크 쿼리로 있는 문제 가져옴
@@ -149,7 +149,7 @@ export default defineBackground(() => {
 
         // 백준 페이지에서 리스트, 제목 등에 로고 업데이트하도록 메세지 전송
         console.log("background: sending problemsExist message to", senderId);
-        chrome.tabs.sendMessage(senderId, {
+        browser.tabs.sendMessage(senderId, {
           type: "problemsExist",
           problemIds: existProblemIds,
         });

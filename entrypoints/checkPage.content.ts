@@ -24,7 +24,7 @@ const extractProblemId = (url_string: string) => {
     url.pathname.match(problemHistoryRegex);
 
   if (match) {
-    problemId = match[1];
+    problemId = match[1] ?? null;
   }
   // Check for /status with problem_id query parameter
   else if (url.pathname === "/status" && url.searchParams.has("problem_id")) {
@@ -43,7 +43,7 @@ const extractProblemIdsFromList = (): string[] => {
     const links = table.querySelectorAll('a[href^="/problem/"]');
     links.forEach((link) => {
       const match = link.getAttribute("href")?.match(/^\/problem\/(\d+)$/);
-      if (match) {
+      if (match?.[1]) {
         problemIds.push(match[1]);
       }
     });
@@ -55,7 +55,7 @@ const extractProblemIdsFromList = (): string[] => {
   );
   if (headerLink) {
     const match = headerLink.getAttribute("href")?.match(/^\/problem\/(\d+)$/);
-    if (match) {
+    if (match?.[1]) {
       problemIds.push(match[1]);
     }
   }
@@ -72,7 +72,7 @@ const addImageLinkToLeft = (element: Element, problemId: string) => {
     console.log("img clicked");
   };
   const img = document.createElement("img");
-  img.src = chrome.runtime.getURL("icon/32.png");
+  img.src = browser.runtime.getURL("/icon/32.png");
   img.style.border = "1px solid lightgrey";
   img.style.marginRight = "2px";
   img.style.verticalAlign = "sub";
@@ -96,14 +96,14 @@ export default defineContentScript({
 
     // Report all the ids currently found to background script.
     // Then, background script can determine which problem actually exists.
-    chrome.runtime.sendMessage({
+    browser.runtime.sendMessage({
       type: "pageLoaded",
       problemIds,
       currentProblemId,
     });
 
     // Listen for messages from the background script, which reports problem exsit
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === "problemsExist") {
         console.log("received problemsExist", message.problemIds);
         const existingProblemIds: string[] = message.problemIds;

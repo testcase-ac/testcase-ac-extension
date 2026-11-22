@@ -17,7 +17,7 @@ function App() {
 
   useEffect(() => {
     // Load initial state from storage
-    chrome.storage.local.get(
+    browser.storage.local.get(
       ["lastCheckedProblemId", "lastCheckedExist", "showPopup"],
       (result) => {
         if (
@@ -25,30 +25,30 @@ function App() {
           result.lastCheckedExist !== undefined
         ) {
           setLastChecked({
-            lastCheckedProblemId: result.lastCheckedProblemId,
-            lastCheckedExist: result.lastCheckedExist,
+            lastCheckedProblemId: result.lastCheckedProblemId as string,
+            lastCheckedExist: result.lastCheckedExist as boolean,
           });
         }
-        setShowPopup(result.showPopup ?? DEFAULT_SHOW_POPUP);
+        setShowPopup((result.showPopup as boolean | undefined) ?? DEFAULT_SHOW_POPUP);
       },
     );
 
     // Listen for changes in storage
     const listener = (changes: {
-      [key: string]: chrome.storage.StorageChange;
+      [key: string]: Browser.storage.StorageChange;
     }) => {
       if (changes.lastCheckedProblemId || changes.lastCheckedExist) {
         setLastChecked({
-          lastCheckedProblemId: changes.lastCheckedProblemId?.newValue,
-          lastCheckedExist: changes.lastCheckedExist?.newValue,
+          lastCheckedProblemId: changes.lastCheckedProblemId?.newValue as string,
+          lastCheckedExist: changes.lastCheckedExist?.newValue as boolean,
         });
       }
     };
 
-    chrome.storage.onChanged.addListener(listener);
+    browser.storage.onChanged.addListener(listener);
 
     return () => {
-      chrome.storage.onChanged.removeListener(listener);
+      browser.storage.onChanged.removeListener(listener);
     };
   }, []);
 
@@ -57,7 +57,7 @@ function App() {
   ) => {
     const newValue = event.target.checked;
     setShowPopup(newValue);
-    chrome.storage.local.set({ showPopup: newValue });
+    browser.storage.local.set({ showPopup: newValue });
   };
 
   const handleOpenTestcase = () => {
